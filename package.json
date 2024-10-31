@@ -1,6 +1,6 @@
 {
     "name": "dsfr-select-dropdown",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "Composant mettant en œuvre la liste déroulante riche du système de design de l'État",
     "main": "dist/index.js",
     "module": "dist/index.js",
