@@ -65,23 +65,23 @@ export default defineComponent({
       required: true,
     },
     label: {
-      type: String,
+      type: String as PropType<string>,
       required: true,
     },
     hint: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     fieldsetLegend: {
-      type: String,
+      type: String as PropType<string>,
       default: 'Choix de l\'option',
     },
     fieldsetLegendHint: {
-      type: String,
+      type: String as PropType<string>,
       default: '',
     },
     showSelectAllBtn: {
-      type: Boolean,
+      type: Boolean as PropType<boolean>,
       default: false,
     },
   },
