@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <div class="fr-select-group" ref="dropDownRef"
+    :class="{ 'fr-select-group--error': reactiveErrorMessage, 'fr-select-group--valid': reactiveSuccessMessage }">
     <p class="fr-label fr-mb-1w" aria-hidden="true">{{ label }}
       <span class="fr-hint-text" v-show="hint">{{ hint }}</span>
     </p>
@@ -11,46 +12,48 @@
         </button>
       </li>
     </ul>
-    <div class="fr-input-group__relative" :aria-labelledby="dropdownId + '-label'">
-      <button @click="toggleDropdown" class="fr-select text-left" :aria-expanded="isDropdownOpen"
-        :aria-controls="dropdownId" :aria-label="label + ' ' + hint + ' ' + selectedOptionsLabel" ref="selectButtonRef">
-        {{ selectedOptionsLabel }}
-      </button>
-      <div v-if="isDropdownOpen" :id="dropdownId">
-        <div class="fr-collapse fr-dropdown-shadow" :class="{ 'fr-collapse--expanded': isDropdownOpen }">
-          <div class="fr-menu__alt fr-mb-2w">
-            <div class="fr-btns-group" v-show="showSelectAllBtn">
-              <button class="fr-btn fr-btn--secondary fr-btn--sm fr-mb-2w" @click="selectAll">
-                Tout {{ allSelected ? "désélectionner" : "sélectionner" }}
-              </button>
-            </div>
-            <div class="fr-input-group">
-              <input type="search" aria-label="Filtre des options affichées" title="Filtre des options affichées"
-                v-model="query" placeholder="Rechercher une option..." class="fr-input" />
-            </div>
-            <p :id="'search-options-' + dropdownId" role="status" aria-atomic="true" class="fr-sr-only">
-              {{ filteredOptions.length }} options affichées
-            </p>
-            <fieldset class="fr-fieldset">
-              <legend class="fr-fieldset__legend fr-fieldset__legend--regular">{{ fieldsetLegend }}
-                <span class="fr-hint-text" v-show="fieldsetLegendHint">{{ fieldsetLegendHint }}</span>
-              </legend>
-              <div class="fr-fieldset__element" v-for="option in filteredOptions" :key="option.value">
-                <div class="fr-checkbox-group">
-                  <input type="checkbox" :id="option.value" :value="option.value" v-model="selectedOptions">
-                  <label class="fr-label" :for="option.value">{{ option.label }}</label>
-                </div>
-              </div>
-            </fieldset>
+    <button @click="toggleDropdown" class="fr-select text-left"
+      :class="{ 'fr-select--error': reactiveErrorMessage, 'fr-select--valid': reactiveSuccessMessage }"
+      :aria-expanded="isDropdownOpen" :aria-controls="dropdownId"
+      :aria-label="label + ' ' + hint + ' ' + selectedOptionsLabel" ref="selectButtonRef">
+      {{ selectedOptionsLabel }}
+    </button>
+    <div v-if="isDropdownOpen" :id="dropdownId">
+      <div class="fr-collapse fr-dropdown-shadow" :class="{ 'fr-collapse--expanded': isDropdownOpen }">
+        <div class="fr-menu__alt fr-mb-2w">
+          <div class="fr-btns-group" v-show="showSelectAllBtn">
+            <button class="fr-btn fr-btn--secondary fr-btn--sm fr-mb-2w" @click="selectAll">
+              Tout {{ allSelected ? "désélectionner" : "sélectionner" }}
+            </button>
           </div>
+          <div class="fr-input-group">
+            <input type="search" aria-label="Filtre des options affichées" title="Filtre des options affichées"
+              v-model="query" placeholder="Rechercher une option..." class="fr-input" />
+          </div>
+          <p :id="'search-options-' + dropdownId" role="status" aria-atomic="true" class="fr-sr-only">
+            {{ filteredOptions.length }} options affichées
+          </p>
+          <fieldset class="fr-fieldset" ref="dropDownRef">
+            <legend class="fr-fieldset__legend fr-fieldset__legend--regular">{{ fieldsetLegend }}
+              <span class="fr-hint-text" v-show="fieldsetLegendHint">{{ fieldsetLegendHint }}</span>
+            </legend>
+            <div class="fr-fieldset__element" v-for="option in filteredOptions" :key="option.value">
+              <div class="fr-checkbox-group">
+                <input type="checkbox" :id="option.value" :value="option.value" v-model="selectedOptions">
+                <label class="fr-label" :for="option.value">{{ option.label }}</label>
+              </div>
+            </div>
+          </fieldset>
         </div>
       </div>
     </div>
+    <p v-if="reactiveErrorMessage" class="fr-error-text" role="alert">{{ reactiveErrorMessage }}</p>
+    <p v-if="reactiveSuccessMessage" class="fr-valid-text" role="status">{{ reactiveSuccessMessage }}</p>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, PropType, onMounted, onBeforeUnmount } from 'vue';
+import { defineComponent, ref, computed, PropType, onMounted, onBeforeUnmount, watch } from 'vue';
 
 interface Option {
   label: string;
@@ -84,12 +87,37 @@ export default defineComponent({
       type: Boolean as PropType<boolean>,
       default: false,
     },
+    errorMessage: {
+      type: String as PropType<string>,
+      default: null,
+    },
+    successMessage: {
+      type: String as PropType<string>,
+      default: null,
+    },
   },
   setup(props) {
     const isDropdownOpen = ref(false);
     const query = ref('');
     const selectedOptions = ref<string[]>([]);
     const selectButtonRef = ref<HTMLElement | null>(null);
+    const dropDownRef = ref<HTMLElement | null>(null);
+    const reactiveErrorMessage = ref(props.errorMessage);
+    const reactiveSuccessMessage = ref(props.successMessage);
+
+    watch(
+      () => props.errorMessage,
+      (newVal) => {
+        reactiveErrorMessage.value = newVal;
+      }
+    );
+
+    watch(
+      () => props.successMessage,
+      (newVal) => {
+        reactiveSuccessMessage.value = newVal;
+      }
+    );
 
     const filteredOptions = computed(() => {
       return props.options.filter(option =>
@@ -141,12 +169,21 @@ export default defineComponent({
       }
     };
 
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isDropdownOpen.value && dropDownRef.value && !dropDownRef.value.contains(target)) {
+          isDropdownOpen.value = false;
+      }
+    };
+
     onMounted(() => {
       window.addEventListener('keydown', handleKeydown);
+      document.addEventListener("click", handleClickOutside);
     });
 
     onBeforeUnmount(() => {
       window.removeEventListener('keydown', handleKeydown);
+      document.removeEventListener("click", handleClickOutside);
     });
 
     return {
@@ -161,7 +198,10 @@ export default defineComponent({
       selectAll,
       removeTag,
       getOptionLabel,
-      selectButtonRef
+      selectButtonRef,
+      dropDownRef,
+      reactiveErrorMessage,
+      reactiveSuccessMessage,
     };
   },
 });
